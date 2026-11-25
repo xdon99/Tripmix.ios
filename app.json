@@ -42,6 +42,17 @@
     "experiments": {
       "typedRoutes": true
     },
-    "splash": null
+    "splash": null,
+    "extra": {
+      "router": {
+        "asyncRoutes": {
+          "web": true
+        }
+      },
+      "eas": {
+        "projectId": "84b1ba8b-f6cb-4755-9268-cafbd746a582"
+      }
+    },
+    "owner": "xdon99"
   }
 }
