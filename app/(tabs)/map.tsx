@@ -1,7 +1,5 @@
 import { CategoryBadge } from '@/src/components/CategoryBadge';
-import { categoryIcons } from '@/src/components/icons';
-import { StylizedMapBackground } from '@/src/components/StylizedMap';
-import { getCategoryStyle } from '@/src/logic/categoryStyles';
+import { GoogleMapView } from '@/src/components/GoogleMapView';
 import { tripPreviewLabel } from '@/src/logic/explore';
 import { useTripStore } from '@/src/state/Store';
 import { colors, spacing } from '@/src/theme';
@@ -15,7 +13,6 @@ export default function TripMapScreen() {
   const trip = state.trips.find((item) => item.id === state.selectedTripId) ?? state.trips[0];
   if (!trip) return null;
   const activePin = trip.stops.find((stop) => stop.id === state.selectedMapPinId);
-  const routePoints = trip.stops.map((stop) => `${stop.x * 4},${stop.y * 2.4}`).join(' ');
 
   return (
     <ScrollView
@@ -60,41 +57,14 @@ export default function TripMapScreen() {
       </ScrollView>
 
       <View style={styles.map}>
-        <StylizedMapBackground viewBox="0 0 400 240" routePoints={routePoints} />
-        <View style={styles.legend}>
-          <LegendDot color={colors.indigo} label="Hotel" />
-          <LegendDot color={colors.amber500} label="Shop/Food" />
-          <LegendDot color={colors.rose} label="Activity" />
-        </View>
-        {trip.stops.map((stop, index) => {
-          const style = getCategoryStyle(stop.category);
-          const Icon = categoryIcons[style.icon];
-          const selected = state.selectedMapPinId === stop.id;
-          return (
-            <Pressable
-              key={stop.id}
-              onPress={() => dispatch({ type: 'selectMapPin', stopId: stop.id })}
-              style={[
-                styles.pin,
-                { left: `${stop.x}%`, top: `${stop.y}%` },
-              ]}>
-              <View
-                style={[
-                  styles.pinBubble,
-                  { backgroundColor: style.pinBg },
-                  selected && { transform: [{ scale: 1.25 }], borderWidth: 4, borderColor: style.ring },
-                ]}>
-                <Text style={styles.pinIndex}>{index + 1}</Text>
-                <Icon color="#FFFFFF" size={12} />
-              </View>
-              <View style={styles.pinLabel}>
-                <Text style={styles.pinLabelText} numberOfLines={1}>
-                  {stop.name}
-                </Text>
-              </View>
-            </Pressable>
-          );
-        })}
+        <GoogleMapView
+          tripId={trip.id}
+          markers={trip.stops}
+          selectedId={state.selectedMapPinId}
+          onSelectMarker={(stopId) => dispatch({ type: 'selectMapPin', stopId })}
+          showRoute
+          showLegend
+        />
         {activePin ? (
           <View style={styles.popover}>
             <View style={{ flex: 1, minWidth: 0 }}>
@@ -178,14 +148,6 @@ export default function TripMapScreen() {
   );
 }
 
-function LegendDot({ color, label }: { color: string; label: string }) {
-  return (
-    <View style={styles.legendItem}>
-      <View style={[styles.legendDot, { backgroundColor: color }]} />
-      <Text style={styles.legendLabel}>{label}</Text>
-    </View>
-  );
-}
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: colors.bg },
@@ -233,46 +195,6 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(226,232,240,0.9)',
     backgroundColor: colors.mapBase,
   },
-  legend: {
-    position: 'absolute',
-    top: 10,
-    left: 10,
-    backgroundColor: 'rgba(255,255,255,0.84)',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.8)',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  legendItem: { flexDirection: 'row', alignItems: 'center', gap: 4 },
-  legendDot: { width: 8, height: 8, borderRadius: 4 },
-  legendLabel: { fontSize: 9, fontWeight: '700', color: colors.slate700 },
-  pin: {
-    position: 'absolute',
-    alignItems: 'center',
-    transform: [{ translateX: -24 }, { translateY: -18 }],
-    zIndex: 10,
-  },
-  pinBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  pinIndex: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
-  pinLabel: {
-    marginTop: 2,
-    backgroundColor: 'rgba(15,23,42,0.8)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 4,
-    maxWidth: 84,
-  },
-  pinLabelText: { color: '#FFFFFF', fontSize: 9, fontWeight: '600' },
   popover: {
     position: 'absolute',
     left: 10,

@@ -1,13 +1,13 @@
 import { categoryIcons } from '@/src/components/icons';
-import { StylizedMapBackground } from '@/src/components/StylizedMap';
+import { GoogleMapView } from '@/src/components/GoogleMapView';
+import { boundsForTrip, formatLatLng, percentToLatLng } from '@/src/logic/mapProjection';
 import { useTripStore } from '@/src/state/Store';
 import { colors, radii, spacing } from '@/src/theme';
 import { SPOT_CATEGORIES } from '@/src/types';
 import { LinearGradient } from 'expo-linear-gradient';
-import { MapPin, Send, Star, X } from 'lucide-react-native';
-import { useState } from 'react';
+import { Send, Star, X } from 'lucide-react-native';
+import { useMemo, useState } from 'react';
 import {
-  GestureResponderEvent,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -23,14 +23,10 @@ export default function ShareScreen() {
   const [name, setName] = useState('');
   const [cost, setCost] = useState('45');
   const [review, setReview] = useState('');
-  const [mapSize, setMapSize] = useState({ width: 1, height: 1 });
-
-  const onMapPress = (event: GestureResponderEvent) => {
-    const { locationX, locationY } = event.nativeEvent;
-    const x = (locationX / mapSize.width) * 100;
-    const y = (locationY / mapSize.height) * 100;
-    dispatch({ type: 'dropPin', x, y });
-  };
+  const pinLatLng = useMemo(
+    () => percentToLatLng(state.newPinCoords, boundsForTrip('tokyo')),
+    [state.newPinCoords],
+  );
 
   const onPublish = () => {
     if (!name.trim() || !review.trim()) return;
@@ -91,33 +87,17 @@ export default function ShareScreen() {
       <View style={{ gap: 6 }}>
         <View style={styles.stepRow}>
           <Text style={styles.step}>2. Tap Map to Drop Pin</Text>
-          <Text style={styles.coords}>
-            Lat 35.{state.newPinCoords.y}°, Lon 139.{state.newPinCoords.x}°
-          </Text>
+          <Text style={styles.coords}>{formatLatLng(pinLatLng)}</Text>
         </View>
-        <Pressable
-          onPress={onMapPress}
-          onLayout={(event) => {
-            const { width, height } = event.nativeEvent.layout;
-            setMapSize({ width, height });
-          }}
-          style={styles.map}>
-          <View pointerEvents="none" style={StyleSheet.absoluteFill}>
-            <StylizedMapBackground viewBox="0 0 400 160" />
-          </View>
-          <View
-            pointerEvents="none"
-            style={[
-              styles.userPin,
-              { left: `${state.newPinCoords.x}%`, top: `${state.newPinCoords.y}%` },
-            ]}>
-            <View style={styles.userPinBubble}>
-              <MapPin color="#FFFFFF" size={12} />
-              <Text style={styles.userPinText}>Pinned Here</Text>
-            </View>
-            <View style={styles.userPinTip} />
-          </View>
-        </Pressable>
+        <View style={styles.map}>
+          <GoogleMapView
+            tripId="tokyo"
+            markers={[]}
+            interactive="drop-pin"
+            dropPin={state.newPinCoords}
+            onDropPin={({ x, y }) => dispatch({ type: 'dropPin', x, y })}
+          />
+        </View>
       </View>
 
       <View style={styles.form}>
@@ -238,27 +218,6 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.slate300,
     backgroundColor: colors.mapBase,
-  },
-  userPin: {
-    position: 'absolute',
-    alignItems: 'center',
-    transform: [{ translateX: -40 }, { translateY: -28 }],
-  },
-  userPinBubble: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    backgroundColor: colors.indigo,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 999,
-  },
-  userPinText: { color: '#FFFFFF', fontSize: 10, fontWeight: '800' },
-  userPinTip: {
-    width: 8,
-    height: 8,
-    backgroundColor: colors.indigo,
-    transform: [{ rotate: '45deg' }, { translateY: -4 }],
   },
   form: {
     backgroundColor: colors.white,
